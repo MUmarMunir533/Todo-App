@@ -1,101 +1,140 @@
-import Image from "next/image";
+"use client";
+import { useState, useEffect } from "react";
+import { FaTrashAlt, FaPlusCircle, FaEdit } from "react-icons/fa"; // Added Edit icon
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [todos, setTodos] = useState([]);
+  const [title, setTitle] = useState("");
+  const [editingId, setEditingId] = useState(null); // State for editing Todo
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  useEffect(() => {
+    const fetchTodos = async () => {
+      const response = await fetch("/api/todos");
+      const data = await response.json();
+      setTodos(data);
+    };
+    fetchTodos();
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+
+    const response = await fetch("/api/todos", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ title }),
+    });
+
+    const newTodo = await response.json();
+    setTodos([...todos, newTodo]);
+    setTitle("");
+  };
+
+  const handleDelete = async (id) => {
+    const response = await fetch("/api/todos", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    if (response.ok) {
+      setTodos(todos.filter((todo) => todo.id !== id));
+    } else {
+      console.error("Failed to delete todo");
+    }
+  };
+
+  const handleEdit = (id, currentTitle) => {
+    setEditingId(id);
+    setTitle(currentTitle);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+
+    const response = await fetch("/api/todos", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id: editingId, title }),
+    });
+
+    const updatedTodo = await response.json();
+
+    setTodos(
+      todos.map((todo) =>
+        todo.id === editingId ? { ...todo, title: updatedTodo.title } : todo
+      )
+    );
+
+    setEditingId(null);
+    setTitle("");
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-r from-indigo-600 to-blue-500 flex justify-center items-center px-4 py-6">
+      <div className="w-full max-w-4xl bg-white rounded-lg shadow-xl p-8">
+        <h1 className="text-4xl font-extrabold text-center text-indigo-600 mb-8 text-shadow-lg">
+          My Todo List
+        </h1>
+
+        <form
+          onSubmit={editingId ? handleUpdate : handleSubmit}
+          className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8"
+        >
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter a new task..."
+            className="w-full md:w-2/3 border-2 border-indigo-400 rounded-lg px-6 py-4 text-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+
+          <button
+            type="submit"
+            className="w-full md:w-auto px-8 py-4 mt-4 md:mt-0 bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-semibold rounded-lg shadow-xl"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            <FaPlusCircle className="inline-block mr-2 text-2xl" />
+            {editingId ? "Update Todo" : "Add Todo"}
+          </button>
+        </form>
+
+        <ul className="space-y-6">
+          {todos.map((todo) => (
+            <li
+              key={todo.id}
+              className="flex flex-col sm:flex-row items-center justify-between p-6 bg-white border-2 border-indigo-200 rounded-xl shadow-lg"
+            >
+              <span className="text-xl font-medium text-gray-700 mb-2 sm:mb-0">
+                {todo.title}
+              </span>
+
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => handleEdit(todo.id, todo.title)}
+                  className="px-6 py-2 bg-yellow-500 text-white rounded-md shadow-md"
+                >
+                  <FaEdit className="text-xl" />
+                </button>
+
+                <button
+                  onClick={() => handleDelete(todo.id)}
+                  className="px-6 py-2 bg-red-500 text-white rounded-md shadow-md"
+                >
+                  <FaTrashAlt className="text-xl" />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
